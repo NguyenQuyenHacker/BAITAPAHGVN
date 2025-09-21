@@ -4,7 +4,7 @@ from util import logger, dwh
 
 def get_df_fgi_v1():
     N_MM, N_VIX_STD, N_VIX_SMOOTH = 125, 50, 125
-    TBL_HOSE, TBL_INDEX = "stg_tcs_stx_mrk_hosestock", "stg_tcs_stx_mrk_hoseindex"
+    TBL_HOSE, TBL_INDEX = "stg_tcs_stx_mrk_ssaaasd", "stg_tcs_stx_mrk_heffff"
 
     # Dữ liệu HOSE
     df_hose = dwh.query(f"""
