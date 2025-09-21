@@ -1,0 +1,43 @@
+import numpy as np
+import pandas as pd
+from util import dwh
+
+def get_df_fgi_v3(schema="staging", tbl="stg_tcs_stx_mrk_hoseindex"):
+    """
+    Fear & Greed Index - Version 3
+    Dùng dynamic schema & table, truyền vào từ tham số.
+    """
+
+    # Tham số
+    N_MM = 150
+    N_VIX = 60
+
+    # Query động
+    df_index = dwh.query(f"""
+        SELECT tradingdate, indexvalue AS vnindex
+        FROM {schema}.{tbl}
+        WHERE comgroupcode = 'VNINDEX'
+          AND tradingdate >= '2020-01-01'
+        ORDER BY tradingdate
+    """).astype({'tradingdate': 'datetime64'})
+
+    # Momentum
+    df_index['momentum'] = df_index.vnindex / df_index.vnindex.rolling(N_MM).mean() - 1
+
+    # Volatility Index (VIX-like)
+    df_index['vix'] = df_index.vnindex.pct_change().rolling(N_VIX).std()
+
+    # Breadth giả định: dựa trên biến động dương/âm
+    df_index['breadth'] = np.where(df_index.vnindex.diff() > 0, 1, -1)
+    df_index['breadth'] = df_index['breadth'].rolling(20).mean()
+
+    # Chuẩn hóa rank phần trăm
+    for col in ['momentum', 'vix', 'breadth']:
+        df_index[col] = df_index[col].rolling(300).rank(pct=True).round(2) * 100
+
+    # Score
+    df_index['fear_greed_score'] = df_index[['momentum', 'vix', 'breadth']].mean(axis=1).round(2)
+
+    df_index['createddatetime'] = pd.Timestamp.now()
+
+    return df_index[['tradingdate', 'fear_greed_score', 'vnindex', 'breadth', 'createddatetime']]
